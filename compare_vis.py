@@ -7,32 +7,15 @@ import argparse
 from xml.dom.minidom import parse
 import xml.dom.minidom
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-n","--node_cnt", help="number of nodes to show", default=0, type=int)
-parser.add_argument("-t","--node_type",help="node type filter",default="", type=str)
-parser.add_argument("log_fileA")
-parser.add_argument("log_fileB")
-parser.add_argument("exec_graphA", nargs="?")
-parser.add_argument("exec_graphB", nargs="?")
-
-args = parser.parse_args()
-
-exec_graphA = ""
-if args.exec_graphA:
-    with open(args.exec_graphA) as f:
-        exec_graphA = f.readlines()
-
-exec_graphB = ""
-if args.exec_graphB:
-    with open(args.exec_graphB) as f:
-        exec_graphB = f.readlines()
-
+exec_graphA = ''
+exec_graphB = ''
+args = None
 
 def find_layout(exec_graph, name):
     if (name.endswith("...")):
         tag = 'originalLayersNames="{}'.format(name.rstrip("..."))
     else:
-        tag = 'originalLayersNames="{}"'.format(name)
+        tag = 'originalLayersNames="{}'.format(name)
     layout='outputLayouts="'
     found = 0
     ret = "?"
@@ -46,7 +29,7 @@ def find_layout(exec_graph, name):
         ret = "?"
     return ret
 
-if len(args.node_type) > 0 and args.node_cnt <= 0:
+if args and len(args.node_type) > 0 and args.node_cnt <= 0:
     args.node_cnt = 99999999
 
 pc_log_start_tag = "[ INFO ] Performance counts for 0-th infer request:"
@@ -98,6 +81,7 @@ def analyse(log_file):
                 stat.append(l[9:].strip(" ").strip("\t"))
                 continue
 
+            if l == '\n': continue
             if l.startswith(pc_log_start_tag):
                 start = True
                 continue
@@ -111,6 +95,11 @@ def analyse(log_file):
                 if (run == "NOT_RUN"):
                     continue
                 node_type = layer_type + "_" + execType
+
+                if node_type.startswith('Convolution_brgconv_avx512'):
+                    node_type = node_type.replace('brgconv', 'brg.jit')
+                elif node_type.startswith('Convolution_jit_avx512'):
+                    node_type = node_type.replace('jit', 'brg.jit')
 
                 if not node_type in pc_by_type:
                     pc_by_type[node_type] = [0,0] # cnt, total
@@ -189,6 +178,7 @@ def show_compare_result(log_fileA, log_fileB):
         return None
 
     total_time0 = total_time1 = 0
+    results = []
     for type_name in type_names:
         v0 = find(pc_by_type0, type_name)
         if v0:
@@ -210,12 +200,13 @@ def show_compare_result(log_fileA, log_fileB):
         
         color_start, color_end = choose_color(time0, time1)
         print("{} {:>8} {:>32}   {:<32}   {} {}".format(color_start, smart_val(time1-time0),  info0, info1, type_name, color_end))
+        results.append((type_name, (time1-time0)/1000))
 
     color_start, color_end = choose_color(total_time0, total_time1)
     print("")
     print("{:>8}  {:>32}   {:<32}   {}".format(smart_val(total_time1 - total_time0), total_time0, total_time1, "Totals"))
 
-    node_cnt_to_show = args.node_cnt
+    node_cnt_to_show = args.node_cnt if args else 0
     if (node_cnt_to_show > 0):
         print("*********************************************************")
         print("*                   comparing by node                   *")
@@ -265,6 +256,24 @@ def show_compare_result(log_fileA, log_fileB):
         s1 = stat1[i].rstrip("\n").rstrip("\r")
         print("{:>50}   {:<50} ".format(s0, s1))
 
-show_compare_result(args.log_fileA, args.log_fileB)
+    return results
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n","--node_cnt", help="number of nodes to show", default=10, type=int)
+    parser.add_argument("-t","--node_type",help="node type filter",default="", type=str)
+    parser.add_argument("log_fileA", nargs="?")
+    parser.add_argument("log_fileB", nargs="?")
+    parser.add_argument("exec_graphA", nargs="?")
+    parser.add_argument("exec_graphB", nargs="?")
+
+    args = parser.parse_args()
+    with open(args.exec_graphA or 'exec_graph_A.xml') as f:
+        exec_graphA = f.readlines()
+
+    with open(args.exec_graphB or 'exec_graph_B.xml') as f:
+        exec_graphB = f.readlines()
+
+    show_compare_result(args.log_fileA or 'pcA.txt', args.log_fileB or 'pcB.txt')
 
 #show_result(args.log_files[0], pc_by_node0, pc_by_type0, stat0)
