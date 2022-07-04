@@ -43,7 +43,7 @@ for i in range(len(result_new)):
 
 # 3, run compare tool
 detail_f = open(f'{new_log}.layer.csv', 'w')
-detail_f.write('name,new_fps,base_fps,ratio,layer1,time1(ms),,,,,,,,,,\n')
+detail_f.write('name,new_fps,base_fps,ratio,delta(ms),layer1,time1(ms),,,,,,,,,,\n')
 for (i, name, new_fps, base_fps) in result_sets:
     os.environ['USE_BRG'] = '0'
     outputA = subprocess.run([f'{ov_bench_dir}/benchmark_app', '-m', model_base_dir + name] + args, capture_output=True)
@@ -58,7 +58,7 @@ for (i, name, new_fps, base_fps) in result_sets:
         with open('test2.log', 'w') as f:
             f.write(out)
     result = compare_vis.show_compare_result('test2.log', 'test1.log')
-    detail_f.write(f'{name},{new_fps},{base_fps},{(new_fps-base_fps)/base_fps:.3f},')
+    detail_f.write(f'{name},{new_fps},{base_fps},{(new_fps-base_fps)*100/base_fps:.2f}%,{(-1/new_fps+1/base_fps)*1000},')
     result = sorted(result, key=lambda x: x[1])
     for (n, t) in result:
         if t < 0:

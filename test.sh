@@ -6,8 +6,8 @@ model_dir=/home/luocheng/models_cache/models_cache/
 bin_dir=`pwd`/../openvino/bin/intel64/Release
 
 export ONEDNN_VERBOSE=0
-export USE_BRG=0
+# without brg
 numactl -C $cpus -m $node -- python3 test_all.py $bin_dir $base_log $model_dir
-export USE_BRG=1
+# with brg
 numactl -C $cpus -m $node -- python3 test_all.py $bin_dir $new_log $model_dir -expconv
 numactl -C $cpus -m $node -- python3 postprocess.py $new_log.log $base_log.log -0.1 $model_dir $bin_dir
