@@ -100,6 +100,14 @@ def analyse(log_file):
                     node_type = node_type.replace('brgconv', 'brg.jit')
                 elif node_type.startswith('Convolution_jit_avx512'):
                     node_type = node_type.replace('jit', 'brg.jit')
+                if node_type.startswith('GroupConvolution_ref_any_FP32'):
+                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+                elif node_type.startswith('GroupConvolution_brgconv_avx512') and node_type.endswith('_FP32'):
+                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+                elif node_type.startswith('GroupConvolution_jit_avx512_FP32'):
+                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+                elif node_type.startswith('GroupConvolution_jit_gemm_FP32'):
+                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
 
                 if not node_type in pc_by_type:
                     pc_by_type[node_type] = [0,0] # cnt, total
