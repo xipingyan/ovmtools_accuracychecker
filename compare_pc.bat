@@ -7,9 +7,9 @@ rem @set binB=%cd%\../openvino-tmp/bin/intel64/RelWithDebInfo
 @set cur=%cd%
 @set ONEDNN_VERBOSE=2
 @cd %binB%
-benchmark_app -m %1 %args% -exec_graph_path %cur%\exec_graph_B.xml > %cur%\pcB.txt
+benchmark_app -dopt -m %1 %args% -exec_graph_path %cur%\exec_graph_B.xml > %cur%\pcB.txt
 @cd %binA%
-benchmark_app -expconv -m %1 %args% -exec_graph_path %cur%\exec_graph_A.xml > %cur%\pcA.txt
+benchmark_app -dopt -cpu_experimental=brgconv -m %1 %args% -exec_graph_path %cur%\exec_graph_A.xml > %cur%\pcA.txt
 @cd %cur%
 
 @python compare_vis.py pcA.txt pcB.txt

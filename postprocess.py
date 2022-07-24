@@ -9,6 +9,9 @@ base_log = sys.argv[2]
 thresh = float(sys.argv[3])
 model_base_dir = sys.argv[4]
 ov_bench_dir = sys.argv[5]
+check_good = False
+if len(sys.argv) > 6:
+    check_good = True
 
 args = ['-t', 5, '-b', 1, '-nireq=1', '-nstreams=1', '-nthreads=4', '-infer_precision=f32', '-pc']
 args = [str(i) for i in args]
@@ -63,8 +66,14 @@ for (i, name, new_fps, base_fps) in result_sets:
         raise Exception(f'exec bench error, model:{name}\n error: {out}')
     result = compare_vis.show_compare_result('test2.log', 'test1.log')
     detail_f.write(f'{name},{new_fps},{base_fps},{(new_fps-base_fps)*100/base_fps:.2f}%,{(-1/new_fps+1/base_fps)*1000},')
-    result = sorted(result, key=lambda x: x[1])
-    for (n, t) in result:
-        if t < 0:
-            detail_f.write(f'{n},{t},')
+    if check_good:
+        result = sorted(result, key=lambda x: x[1])
+        for (n, t) in result:
+            if t < 0:
+                detail_f.write(f'{n},{t},')
+    else:
+        result = sorted(result, key=lambda x: x[1], reverse=True)
+        for (n, t) in result:
+            if t > 0:
+                detail_f.write(f'{n},{t},')
     detail_f.write('\n')
