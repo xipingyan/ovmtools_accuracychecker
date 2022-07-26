@@ -25,7 +25,7 @@ log = open(f'{cwd}/{output_base}_detail.log', 'w')
 out_f = open(f'{cwd}/{output_base}.log', 'w')
 pathlist = Path(base).rglob('*.xml')
 for idx, path in enumerate(pathlist):
-    f = str(path)
+    f = os.path.normpath(str(path))
     print(f'{idx:3d} {f}... ', end=''),
     for i in range(3):
         outputA = subprocess.run(['./benchmark_app', '-m', f] + args, capture_output=True)
