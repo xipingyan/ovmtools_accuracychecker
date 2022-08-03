@@ -28,6 +28,7 @@ for idx, path in enumerate(pathlist):
     f = os.path.normpath(str(path))
     print(f'{idx:3d} {f}... ', end=''),
     for i in range(3):
+        log.write(f'=========================testing {f}...\n')
         outputA = subprocess.run(['./benchmark_app', '-m', f] + args, capture_output=True)
         out = outputA.stdout.decode()
         log.write(out)
