@@ -1,11 +1,25 @@
 #!/usr/bin/python3
 
+from xmlrpc.client import Boolean
 import numpy as np
 #import matplotlib.pyplot as plt
 import sys, os
 import argparse
 from xml.dom.minidom import parse
 import xml.dom.minidom
+import os.path
+import json
+
+my_verbose_converter = None
+if 'VERBOSE_CONVERT' in os.environ:
+    sys.path.append(os.environ['VERBOSE_CONVERT'])
+    try:
+        import verbose_converter
+
+        my_verbose_converter = verbose_converter.convert
+    except Exception as e:
+        print(e)
+        pass
 
 exec_graphA = ''
 exec_graphB = ''
@@ -63,14 +77,51 @@ class Colors:
     CROSSED = "\033[9m"
     END = "\033[0m"
 
-def analyse(log_file):
+def analyse(log_file, json_dir):
     pc_by_type = {}
     pc_by_node = {}
     
     stat = []
+    verbose_by_name = {}
+    layers = None
+    if os.path.isfile(f'{json_dir}/benchmark_detailed_counters_report.json'):
+        with open(f'{json_dir}/benchmark_detailed_counters_report.json',"r") as f:
+            layers = json.loads(f.read())
+
+    def append_to_result(run, layer_type,realTime, cpuTime, execType, name):
+        if (run == "NOT_RUN"):
+            return
+        node_type = layer_type + "_" + execType
+
+        if node_type.startswith('Convolution_brgconv_avx512'):
+            node_type = node_type.replace('brgconv', 'brg.jit')
+        elif node_type.startswith('Convolution_jit_avx512'):
+            node_type = node_type.replace('jit', 'brg.jit')
+        elif node_type.startswith('Convolution_jit_gemm_FP32'):
+            node_type = 'Convolution_brg.jit_avx512_FP32'
+        if node_type.startswith('GroupConvolution_ref_any_FP32'):
+            node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+        elif node_type.startswith('GroupConvolution_brgconv_avx512') and node_type.endswith('_FP32'):
+            node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+        elif node_type.startswith('GroupConvolution_jit_avx512_FP32'):
+            node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+        elif node_type.startswith('GroupConvolution_jit_gemm_FP32'):
+            node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
+
+        if not node_type in pc_by_type:
+            pc_by_type[node_type] = [0,0] # cnt, total
+
+        pc_by_type[node_type][0] += 1
+        pc_by_type[node_type][1] += int(realTime)
+
+        pc_by_node[name] = [int(realTime), layer_type, execType]
     with open(log_file,"r") as f:
         start  = False
         for l in f.readlines():
+            if 'verbose##' in l:
+                items = l.split('##')
+                verbose_by_name[items[1]] = items[2].strip()
+                continue
             if l.startswith("	Percent of CPU this job got") or \
                l.startswith("	Maximum resident set size (kbytes)") or \
                l.startswith("	User time (seconds)"):
@@ -81,7 +132,7 @@ def analyse(log_file):
                 stat.append(l[9:].strip(" ").strip("\t"))
                 continue
 
-            if l == '\n': continue
+            if l == '\n' or layers: continue
             if l.startswith(pc_log_start_tag):
                 start = True
                 continue
@@ -91,37 +142,16 @@ def analyse(log_file):
             if start:
                 name = l[:30].rstrip(" ")
                 run, _, layer_type, _, realTime, _, cpuTime, _, execType = l[30:].split()
+                append_to_result(run, layer_type, realTime, cpuTime, execType, name)
 
-                if (run == "NOT_RUN"):
-                    continue
-                node_type = layer_type + "_" + execType
-
-                if node_type.startswith('Convolution_brgconv_avx512'):
-                    node_type = node_type.replace('brgconv', 'brg.jit')
-                elif node_type.startswith('Convolution_jit_avx512'):
-                    node_type = node_type.replace('jit', 'brg.jit')
-                elif node_type.startswith('Convolution_jit_gemm_FP32'):
-                    node_type = 'Convolution_brg.jit_avx512_FP32'
-                if node_type.startswith('GroupConvolution_ref_any_FP32'):
-                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
-                elif node_type.startswith('GroupConvolution_brgconv_avx512') and node_type.endswith('_FP32'):
-                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
-                elif node_type.startswith('GroupConvolution_jit_avx512_FP32'):
-                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
-                elif node_type.startswith('GroupConvolution_jit_gemm_FP32'):
-                    node_type = 'GroupConvolution_any.brg.jit.gemm_FP32'
-
-                if not node_type in pc_by_type:
-                    pc_by_type[node_type] = [0,0] # cnt, total
-
-                pc_by_type[node_type][0] += 1
-                pc_by_type[node_type][1] += int(realTime)
-
-                pc_by_node[name] = [int(realTime), layer_type, execType]
+    if layers:
+        for layer in layers['detailed_performance'][0]['nodes']:
+            append_to_result(layer['status'], layer['node_type'],\
+                layer['real_time']*1000, layer['cpu_time']*1000, layer['exec_type'], layer['name'])
 
     pc_by_node = sorted(pc_by_node.items(), key=lambda d: d[1][0], reverse=True)
     pc_by_type = sorted(pc_by_type.items(), key=lambda d: d[1][1], reverse=True)
-    return pc_by_node, pc_by_type, stat
+    return pc_by_node, pc_by_type, stat, verbose_by_name
 
 
 def show_result(log_file, pc_by_node, pc_by_type, stat):
@@ -167,8 +197,8 @@ def choose_color(t0, t1):
 
 def show_compare_result(log_fileA, log_fileB):
 
-    pc_by_node0, pc_by_type0, stat0 = analyse(log_fileA)
-    pc_by_node1, pc_by_type1, stat1 = analyse(log_fileB)
+    pc_by_node0, pc_by_type0, stat0, verbose_by_name0 = analyse(log_fileA, './a/')
+    pc_by_node1, pc_by_type1, stat1, verbose_by_name1 = analyse(log_fileB, './b/')
     
 
     print("{}   :    {}".format(log_fileA, log_fileB))
@@ -256,6 +286,24 @@ def show_compare_result(log_fileA, log_fileB):
                 color_start, color_end = choose_color(time0, time1)
                 print("{} {:>6} {:>50}  {:<50}  {} {}".format(color_start, smart_val(time1-time0), info0, info1, name, color_end))
 
+            if args.show_verbose == True:
+                verbose = ''
+                if name in verbose_by_name0:
+                    verbose = 'onednn_verbose,exec,' + verbose_by_name0[name]
+                if name in verbose_by_name1:
+                    verbose = 'onednn_verbose,exec,' + verbose_by_name1[name]
+                if len(verbose):
+                    print(verbose)
+                    if my_verbose_converter:
+                        all_verbose = \
+f'''
+onednn_verbose,info,prim_template:operation,engine,primitive,implementation,prop_kind,memory_descriptors,attributes,auxiliary,problem_desc,exec_time
+{verbose},1.7478
+'''
+                        status, output = my_verbose_converter(verbose_level=0, parser='oneDNN', input=all_verbose.splitlines(), action='generate', generator='benchdnn', split_output=False)
+                        if output != None:
+                            for key, value in output.items():
+                                print(f"./benchdnn --fix-times-per-prb=1000 --mode=p {value}", end='')
         color_start, color_end = choose_color(total_time0, total_time1)
         print("")
         print("{}{:>6} {:>50}   {:<50}   {}{}".format(color_start, smart_val(total_time1 - total_time0), total_time0, total_time1, "Totals", color_end))
@@ -276,7 +324,7 @@ if __name__ == "__main__":
     parser.add_argument("log_fileB", nargs="?")
     parser.add_argument("exec_graphA", nargs="?")
     parser.add_argument("exec_graphB", nargs="?")
-
+    parser.add_argument("-s", "--show_verbose", default=True, help="show onednn verbose", type=lambda x: (str(x).lower() == 'true'))
     args = parser.parse_args()
     with open(args.exec_graphA or 'exec_graph_A.xml') as f:
         exec_graphA = f.readlines()
