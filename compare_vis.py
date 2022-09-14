@@ -290,20 +290,31 @@ def show_compare_result(log_fileA, log_fileB):
                 verbose = ''
                 if name in verbose_by_name0:
                     verbose = 'onednn_verbose,exec,' + verbose_by_name0[name]
-                if name in verbose_by_name1:
-                    verbose = 'onednn_verbose,exec,' + verbose_by_name1[name]
-                if len(verbose):
                     print(verbose)
-                    if my_verbose_converter:
-                        all_verbose = \
+                    all_verbose = \
 f'''
 onednn_verbose,info,prim_template:operation,engine,primitive,implementation,prop_kind,memory_descriptors,attributes,auxiliary,problem_desc,exec_time
 {verbose},1.7478
 '''
+                    if my_verbose_converter:
                         status, output = my_verbose_converter(verbose_level=0, parser='oneDNN', input=all_verbose.splitlines(), action='generate', generator='benchdnn', split_output=False)
                         if output != None:
                             for key, value in output.items():
                                 print(f"./benchdnn --fix-times-per-prb=1000 --mode=p {value}", end='')
+                if name in verbose_by_name1:
+                    verbose = 'onednn_verbose,exec,' + verbose_by_name1[name]
+                    print(verbose)
+                    all_verbose = \
+f'''
+onednn_verbose,info,prim_template:operation,engine,primitive,implementation,prop_kind,memory_descriptors,attributes,auxiliary,problem_desc,exec_time
+{verbose},1.7478
+'''
+                    if my_verbose_converter:
+                        status, output = my_verbose_converter(verbose_level=0, parser='oneDNN', input=all_verbose.splitlines(), action='generate', generator='benchdnn', split_output=False)
+                        if output != None:
+                            for key, value in output.items():
+                                print(f"./benchdnn --fix-times-per-prb=1000 --mode=p {value}", end='')
+                    
         color_start, color_end = choose_color(total_time0, total_time1)
         print("")
         print("{}{:>6} {:>50}   {:<50}   {}{}".format(color_start, smart_val(total_time1 - total_time0), total_time0, total_time1, "Totals", color_end))
