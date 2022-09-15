@@ -80,6 +80,7 @@ class Colors:
 def analyse(log_file, json_dir):
     pc_by_type = {}
     pc_by_node = {}
+    statis_by_type = {}
     
     stat = []
     verbose_by_name = {}
@@ -110,9 +111,13 @@ def analyse(log_file, json_dir):
 
         if not node_type in pc_by_type:
             pc_by_type[node_type] = [0,0] # cnt, total
+        if layer_type not in statis_by_type:
+            statis_by_type[layer_type] = [0, 0]
 
         pc_by_type[node_type][0] += 1
         pc_by_type[node_type][1] += int(realTime)
+        statis_by_type[layer_type][0] += 1
+        statis_by_type[layer_type][1] += int(realTime)
 
         pc_by_node[name] = [int(realTime), layer_type, execType]
     with open(log_file,"r") as f:
@@ -151,7 +156,8 @@ def analyse(log_file, json_dir):
 
     pc_by_node = sorted(pc_by_node.items(), key=lambda d: d[1][0], reverse=True)
     pc_by_type = sorted(pc_by_type.items(), key=lambda d: d[1][1], reverse=True)
-    return pc_by_node, pc_by_type, stat, verbose_by_name
+    statis_by_type = sorted(statis_by_type.items(), key=lambda d: d[1][1], reverse=True)
+    return pc_by_node, pc_by_type, stat, verbose_by_name, statis_by_type
 
 
 def show_result(log_file, pc_by_node, pc_by_type, stat):
@@ -197,11 +203,58 @@ def choose_color(t0, t1):
 
 def show_compare_result(log_fileA, log_fileB):
 
-    pc_by_node0, pc_by_type0, stat0, verbose_by_name0 = analyse(log_fileA, './a/')
-    pc_by_node1, pc_by_type1, stat1, verbose_by_name1 = analyse(log_fileB, './b/')
+    pc_by_node0, pc_by_type0, stat0, verbose_by_name0, statis_by_type0 = analyse(log_fileA, './a/')
+    pc_by_node1, pc_by_type1, stat1, verbose_by_name1, statis_by_type1 = analyse(log_fileB, './b/')
     
 
     print("{}   :    {}".format(log_fileA, log_fileB))
+    print("*********************************************************")
+    print("*                   comparing by statis                 *")
+    print("*********************************************************")
+    # collect all type names
+    type_names = [t for t, _ in statis_by_type0]
+    for t, _ in statis_by_type1:
+        if not t in type_names:
+            type_names.append(t)
+
+    def find(pclist, type_name):
+        for name, v in pclist:
+            if name == type_name:
+                return v
+        return None
+
+    total_time0 = total_time1 = 0
+    all_time0 = all_time1 = 0
+    for item in statis_by_type0:
+        _, v = item
+        all_time0 += v[1]
+    for item in statis_by_type1:
+        _, v = item
+        all_time1 += v[1]
+    results = []
+    for type_name in type_names:
+        v0 = find(statis_by_type0, type_name)
+        if v0:
+            cnt, time0 = v0
+            total_time0 += time0
+            info0 = "{:.1f} x {}".format(time0/cnt, cnt)
+        else:
+            time0 = 0
+            info0 = "---"
+
+        v1 = find(statis_by_type1, type_name)
+        if v1:
+            cnt, time1 = v1
+            total_time1 += time1
+            info1 = "{:.1f} x {}".format(time1/cnt, cnt)
+        else:
+            time1 = 0
+            info1 = "---"
+        
+        color_start, color_end = choose_color(time0, time1)
+        print("{} {:>8} {:>24}({:>5.1f}%)   ({:>5.1f}%){:<24}   {} {}".format(color_start, smart_val(time1-time0), info0, time0 * 100.0 / all_time0, time1 * 100 / all_time1, info1, type_name, color_end))
+        results.append((type_name, (time1-time0)/1000))
+
     print("*********************************************************")
     print("*                   comparing by type                   *")
     print("*********************************************************")
