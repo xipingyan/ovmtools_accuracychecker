@@ -10,7 +10,7 @@ rem @set binB=%cd%\../openvino-tmp/bin/intel64/RelWithDebInfo
 @set cur=%cd%
 @set ONEDNN_VERBOSE=2
 @cd %binB%
-@set OV_CPU_DEBUG_LOG=CreatePrimitives;conv.cpp
+@set OV_CPU_DEBUG_LOG=CreatePrimitives;conv.cpp;deconv.cpp
 benchmark_app -m %1 %args% -exec_graph_path %cur%\exec_graph_B.xml -report_folder=%cur%/b > %cur%\pcB.txt
 @cd %binA%
 benchmark_app -m %1 %args% -exec_graph_path %cur%\exec_graph_A.xml -report_folder=%cur%/a > %cur%\pcA.txt
