@@ -21,10 +21,12 @@ model_attributes=f"{data_source}/model_attributes"
 
 annotations=f"/workpath/dataset/data_cache/annotations"
 
+# Mount test_data and models folder.
+# sudo mkdir -p /root/nfs_share
+# sudo mkdir -p /root/nfs_share_2
+# sudo mount -t nfs 10.67.108.173:/home/vsi/nfs_share /root/nfs_share
+# sudo mount -t nfs 10.67.107.130:/home/share /root/nfs_share_2
 # 
-# sudo mount -t nfs 10.67.107.130:/home/share/  ./odt_nfs_share/
-# 
-#
 #
 if __name__ == "__main__":
     all_variables = dir()
