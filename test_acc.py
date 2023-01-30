@@ -5,10 +5,17 @@ from colorama import Fore
 
 _comment_='''
 
+# Python VENV:
+mkdir -p python_venv
+python3 -m venv python_venv
+source python_venv/bin/activate
+
 python3 -m pip install -e ~/openvino/thirdparty/open_model_zoo/tools/accuracy_checker/
 python3 -m pip install -e ~/openvino/tools/mo/
 python3 -m pip install -e ~/openvino/tools/pot
 
+#Some dependencies
+python3 -m pip install colorama
 
 thirdparty/open_model_zoo/tools/accuracy_checker/openvino/tools/accuracy_checker/metrics/image_quality_assessment.py
 
@@ -29,6 +36,13 @@ wget https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth
 wget https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth
 wget https://download.pytorch.org/models/vgg16-397923af.pth
 
+# Run test_acc.py example:
+1: build openvino [-DENABLE_PYTHON=ON -DCMAKE_INSTALL_PREFIX=install]
+2: config: config.py
+
+$ cd [PATH]/ovmtools_accuracychecker/
+$ python3 ./test_acc.py -h
+$ python3 ./test_acc.py --bf16 --model_base ../models_2/
 '''
 
 class oneAccuracyTest:
