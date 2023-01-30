@@ -13,7 +13,7 @@ physcpubind="0,2,4,6,8"
 ov_bin_folder="/home/xiping/openvino/bin/intel64/Release"
 model_base="/home/xiping/nfs_share/sk_13sept_75models_22.2_int8/"
 
-accuracy_checker_configs = "/home/xiping/program/accuracy-checker/configs/omz_validation/"
+accuracy_checker_configs = "/home/xiping/openvino/thirdparty/open_model_zoo/tools/accuracy_checker/"
 definitions_file=f"{accuracy_checker_configs}/dataset_definitions.yml"
 
 data_source=f"/home/xiping/nfs_share_2/omz-validation-datasets/"
