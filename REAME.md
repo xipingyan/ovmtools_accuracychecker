@@ -1,20 +1,31 @@
 # OpenVINO model tools
 
+    WorkPath: [PATH]/ovmtools_accuracychecker/
+    .
+    ├── openvino
+    │   ├── ...
+    ├── ovmtools_accuracychecker
+    │   ├── test_acc.py
+    │   ├── ...
 
-## Performance regression test for CPU plugin
-
-## mount IR cache by nfs
-
+#### Dependencies
 ```bash
-
+python -m venv python_env && source python_env/bin/activat
 sudo apt-get install nfs-common
-
-mkdir nfs
-sudo mount -t nfs 10.67.108.173:/home/vsi/nfs_share ./nfs
-
 ```
+# Accuracy test
 
-## run tests
+    <!-- Mount IR cache by nfs -->
+    $ cd $WorkPath/../ && mkdir nfs_share
+    $ sudo mount -t nfs 10.67.108.173:/home/vsi/nfs_share ./nfs_share
+
+    <!-- Mount test data -->
+
+    $ python ./test_acc.py
+
+# Performance regression test for CPU plugin
+
+#### run tests
 
 run the script inside `screen` and press `ctrl+A D` to detach it to prevent early termination due to accidental ssh connection lost.
 
@@ -30,13 +41,13 @@ change some variables inside benchmark_test.sh before run it:
 
 use `screen -list` to check detached session and `screen -r xxxx` to re-attach.
 
-## visualize results
+#### visualize results
 
 ```bash
 ./benchmark_vis.sh log.txt > vis.txt
 ```
 
-### detailed comparison between two builds of openvino
+#### detailed comparison between two builds of openvino
 
 ```bash
 ./compare_pc.sh xxxx.xml

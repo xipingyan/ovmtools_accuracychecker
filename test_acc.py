@@ -10,9 +10,10 @@ mkdir -p python_venv
 python3 -m venv python_venv
 source python_venv/bin/activate
 
-python3 -m pip install -e ~/openvino/thirdparty/open_model_zoo/tools/accuracy_checker/
-python3 -m pip install -e ~/openvino/tools/mo/
-python3 -m pip install -e ~/openvino/tools/pot
+cd ovmtools_accuracychecker/
+python3 -m pip install -e ../openvino/thirdparty/open_model_zoo/tools/accuracy_checker/
+python3 -m pip install -e ../openvino/tools/mo/
+python3 -m pip install -e ../openvino/tools/pot
 
 #Some dependencies
 python3 -m pip install colorama
