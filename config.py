@@ -18,9 +18,12 @@ physcpubind="0,2,4,6,8"
 # sudo mount -t nfs 10.67.108.173:/home/vsi/nfs_share ../nfs_share
 # Mount test data path:
 # sudo mount -t nfs 10.67.107.130:/home/share ../nfs_share_2
+# For 22 spr machine:
+# sudo mount -t nfs -o ro 10.91.242.212:/data/nn_icv_cv_externalN/omz-validation-datasets ./omz-validation-datasets
 
 # Only accept full path.
 WORK_PATH="/home/xiping/mydisk2_2T/local_accuary_checher_docker_example/no_docker/ovmtools_accuracychecker"
+# WORK_PATH="/home/tingqian/xiping/ovmtools_accuracychecker"
 ov_bin_folder=f"{WORK_PATH}/../openvino/bin/intel64/Release"
 model_base=f"{WORK_PATH}/../nfs_share/sk_13sept_75models_22.2_int8/"
 model_base=f"{WORK_PATH}/../nfs_share/ww09_weekly_23.0.0-9828-4fd38844a28-API2.0-FP16/"

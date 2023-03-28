@@ -44,6 +44,13 @@ wget https://download.pytorch.org/models/vgg16-397923af.pth
 $ cd [PATH]/ovmtools_accuracychecker/
 $ python3 ./test_acc.py -h
 $ python3 ./test_acc.py --bf16 --model_base ../models_2/
+
+QA 1: Can't find yml
+    1:Find yml from: https://github.com/intel-innersource/frameworks.ai.openvino.accuracy-checker-configs/tree/develop/configs/omz_validation/intel_models
+    2:Copy yml. 
+        For example: openvino/thirdparty/open_model_zoo/models/intel/text-spotting-0001/accuracy-check.yml
+    3:Set soft link.
+        For example: tools/accuracy_checker/configs/text-spotting-0001-detector.yml
 '''
 
 class oneAccuracyTest:
